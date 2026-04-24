@@ -1,6 +1,6 @@
 .DS_Store
 node_modules
-dist/
+# dist/ — checked in on this branch for use as a git dependency
 o1labs*.tgz
 tests/report/
 tests/test-artifacts/
@@ -13,6 +13,6 @@ src/config.mlh
 .direnv
 .rustup
 result
-# precompiled bindings
-src/bindings/compiled
+# precompiled bindings — checked in on this branch for use as a git dependency
+# src/bindings/compiled
 .bindings_download

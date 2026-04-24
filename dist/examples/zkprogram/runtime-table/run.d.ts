@@ -1,0 +1,2 @@
+export declare const examplePayrollPublicInput: import("../../../../dist/node/lib/provable/field.js").Field;
+export declare const examplePayrollPrivateInputs: readonly [import("../../../../dist/node/lib/provable/field.js").Field, import("../../../../dist/node/lib/provable/field.js").Field, import("../../../../dist/node/lib/provable/field.js").Field, import("../../../../dist/node/lib/provable/field.js").Field, import("../../../../dist/node/lib/provable/field.js").Field, import("../../../../dist/node/lib/provable/field.js").Field];

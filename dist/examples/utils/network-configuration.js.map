@@ -1,0 +1,1 @@
+{"version":3,"file":"network-configuration.js","sourceRoot":"","sources":["../../../src/examples/utils/network-configuration.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,uBAAuB,EAAE,CAAC;AAEnC,MAAM,uBAAuB,GAAG;IAC9B,IAAI,EAAE,+BAA+B;IACrC,OAAO,EAAE,uBAAuB;IAChC,sBAAsB,EAAE,uBAAuB;CAChD,CAAC"}
