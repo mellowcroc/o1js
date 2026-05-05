@@ -111,24 +111,12 @@ const registry = new FinalizationRegistry((ptr) => {
     ptr.free();
 });
 function freeOnFinalize(instance) {
-    // wasm-bindgen wrappers already manage finalization/ownership internally.
-    // Adding another free path here can double-free or free borrowed values.
-    if (typeof instance?.__destroy_into_raw === 'function') {
-        return instance;
+    let ptr = instance.__wbg_ptr;
+    if (typeof instance.__destroy_into_raw === 'function') {
+        instance.__destroy_into_raw();
+        instance.__wbg_ptr = ptr;
     }
-    // We want `instance` to be garbage-collected naturally, but still release
-    // its Rust allocation when that happens.
-    //
-    // FinalizationRegistry cannot hold `instance` itself as the representative
-    // value, because that would keep it alive. Instead we create a tiny stand-in
-    // that only carries the prototype + raw pointer, which is enough to call
-    // `.free()` once `instance` is collected.
-    //
-    // We intentionally avoid `__wrap()` here, because that constructor path is
-    // for normal wasm-bindgen object creation and can interact with ownership
-    // bookkeeping we do not want in this finalizer surrogate.
-    let instanceRepresentative = Object.create(instance.constructor.prototype);
-    instanceRepresentative.__wbg_ptr = instance.__wbg_ptr;
+    let instanceRepresentative = wrap(ptr, instance.constructor);
     registry.register(instance, instanceRepresentative, instance);
     return instance;
 }
