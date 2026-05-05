@@ -121,6 +121,16 @@ function encodeProverKey(value: SnarkKey): Uint8Array {
 }
 
 /**
+ * Prevent the SRS JS wrapper from being GC'd while the WASM struct that
+ * received its pointer is still alive. The WASM-internal reference is
+ * invisible to JS GC, so without this the finalizer may free the SRS
+ * while the prover/verifier index still uses it.
+ */
+function retainDep(owner: object, dep: object) {
+  Object.defineProperty(owner, '_wasmDep', { value: dep });
+}
+
+/**
  * Decode bytes to a snark key with the help of its header
  */
 function decodeProverKey(header: SnarkKeyHeader, bytes: Uint8Array): SnarkKey {
@@ -128,6 +138,7 @@ function decodeProverKey(header: SnarkKeyHeader, bytes: Uint8Array): SnarkKey {
     case KeyType.StepProvingKey: {
       let srs = Pickles.loadSrsFp();
       let index = wasm.caml_pasta_fp_plonk_index_decode(bytes, srs);
+      retainDep(index, srs);
       let cs = header[1][4];
       return [KeyType.StepProvingKey, [0, index, cs]];
     }
@@ -135,6 +146,7 @@ function decodeProverKey(header: SnarkKeyHeader, bytes: Uint8Array): SnarkKey {
       let srs = Pickles.loadSrsFp();
       let string = new TextDecoder().decode(bytes);
       let vkWasm = wasm.caml_pasta_fp_plonk_verifier_index_deserialize(srs, string);
+      retainDep(vkWasm, srs);
       const rustConversion = getRustConversion(wasm);
       let vkMl = rustConversion.fp.verifierIndexFromRust(vkWasm);
       return [KeyType.StepVerificationKey, vkMl];
@@ -142,6 +154,7 @@ function decodeProverKey(header: SnarkKeyHeader, bytes: Uint8Array): SnarkKey {
     case KeyType.WrapProvingKey: {
       let srs = Pickles.loadSrsFq();
       let index = wasm.caml_pasta_fq_plonk_index_decode(bytes, srs);
+      retainDep(index, srs);
       let cs = header[1][3];
       return [KeyType.WrapProvingKey, [0, index, cs]];
     }
