@@ -150,7 +150,9 @@ function overrideBindings(plonk_wasm, worker) {
       wasm.free_u32_ptr(u32_ptr);
       let res_spec = spec[key].res;
       if (res_spec && res_spec.__wrap) {
-        return spec[key].res.__wrap(res);
+        let obj = Object.create(res_spec.prototype);
+        obj.__wbg_ptr = res;
+        return obj;
       } else if (res_spec && res_spec.back) {
         return res_spec.back(res);
       } else {
