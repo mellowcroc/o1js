@@ -175,24 +175,22 @@ const registry = new FinalizationRegistry((ptr: Freeable) => {
   ptr.free();
 });
 function freeOnFinalize<T extends Freeable>(instance: T) {
-  // wasm-bindgen wrappers already manage finalization/ownership internally.
-  // Adding another free path here can double-free or free borrowed values.
-  if (typeof (instance as any)?.__destroy_into_raw === 'function') {
-    return instance;
+  let ptr = (instance as any).__wbg_ptr;
+
+  // If instance was created by wasm-bindgen's __wrap() (e.g. from a getter),
+  // it's already registered with a per-class FinalizationRegistry that will
+  // call the WASM destructor when GC collects it. Registering it here too
+  // would cause a double-free. Detach from wasm-bindgen's registry first:
+  // __destroy_into_raw() zeros __wbg_ptr and calls unregister().
+  if (typeof (instance as any).__destroy_into_raw === 'function') {
+    (instance as any).__destroy_into_raw();
+    (instance as any).__wbg_ptr = ptr;
   }
-  // We want `instance` to be garbage-collected naturally, but still release
-  // its Rust allocation when that happens.
-  //
-  // FinalizationRegistry cannot hold `instance` itself as the representative
-  // value, because that would keep it alive. Instead we create a tiny stand-in
-  // that only carries the prototype + raw pointer, which is enough to call
-  // `.free()` once `instance` is collected.
-  //
-  // We intentionally avoid `__wrap()` here, because that constructor path is
-  // for normal wasm-bindgen object creation and can interact with ownership
-  // bookkeeping we do not want in this finalizer surrogate.
-  let instanceRepresentative = Object.create((instance as any).constructor.prototype);
-  (instanceRepresentative as any).__wbg_ptr = (instance as any).__wbg_ptr;
+
+  // Create a lightweight representative (via wrap(), NOT __wrap()) that holds
+  // the same pointer. The registry calls representative.free() when instance
+  // is collected. This is now the sole free path — no double-free possible.
+  let instanceRepresentative = wrap<T>(ptr, (instance as any).constructor);
   registry.register(instance, instanceRepresentative, instance);
   return instance;
 }
